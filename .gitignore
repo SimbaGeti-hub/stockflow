@@ -1,0 +1,14 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Editors
+.idea/
+.vscode/
+*.iml
+
+# OS and logs
+.DS_Store
+Thumbs.db
+*.log
