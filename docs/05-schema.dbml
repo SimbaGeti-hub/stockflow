@@ -1,0 +1,401 @@
+// StockFlow database schema v1.0 (PostgreSQL)
+// Every tenant-owned table carries business_id.
+// Money is numeric(19,4). Stock quantities are numeric(14,3).
+
+Enum theme_preference {
+  light
+  dark
+  system
+}
+
+Enum sale_status {
+  draft
+  completed
+  voided
+  refunded
+}
+
+Enum payment_method {
+  cash
+  card
+  mobile_money
+  bank_transfer
+  other
+}
+
+Enum movement_type {
+  opening_balance
+  purchase_receipt
+  sale
+  sale_void
+  sale_refund
+  adjustment
+}
+
+Enum purchase_status {
+  draft
+  ordered
+  partially_received
+  received
+  cancelled
+}
+
+Enum token_type {
+  email_verification
+  password_reset
+}
+
+// ---------- Accounts and workspaces ----------
+
+Table businesses {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(200) [not null]
+  email varchar(255)
+  phone varchar(50)
+  address text
+  logo_url text
+  currency_code char(3) [not null, default: 'UGX']
+  default_tax_rate numeric(7,4) [not null, default: 0]
+  receipt_footer text
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table users {
+  id uuid [pk, default: `gen_random_uuid()`]
+  email varchar(255) [not null, unique]
+  password_hash varchar(255) [not null]
+  full_name varchar(200) [not null]
+  phone varchar(50)
+  avatar_url text
+  theme theme_preference [not null, default: 'system']
+  email_verified_at timestamptz
+  is_active boolean [not null, default: true]
+  last_login_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table roles {
+  id smallint [pk, increment]
+  key varchar(30) [not null, unique, note: 'owner, administrator, staff']
+  name varchar(60) [not null]
+}
+
+Table permissions {
+  id smallint [pk, increment]
+  key varchar(60) [not null, unique, note: 'for example products:write']
+  description varchar(255)
+}
+
+Table role_permissions {
+  role_id smallint [not null, ref: > roles.id]
+  permission_id smallint [not null, ref: > permissions.id]
+
+  indexes {
+    (role_id, permission_id) [pk]
+  }
+}
+
+Table business_memberships {
+  id uuid [pk, default: `gen_random_uuid()`]
+  business_id uuid [not null, ref: > businesses.id]
+  user_id uuid [not null, ref: > users.id]
+  role_id smallint [not null, ref: > roles.id]
+  is_active boolean [not null, default: true]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (business_id, user_id) [unique]
+  }
+}
+
+Table invitations {
+  id uuid [pk, default: `gen_random_uuid()`]
+  business_id uuid [not null, ref: > businesses.id]
+  email varchar(255) [not null]
+  role_id smallint [not null, ref: > roles.id]
+  token_hash varchar(255) [not null, unique]
+  invited_by uuid [not null, ref: > users.id]
+  expires_at timestamptz [not null]
+  accepted_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table user_tokens {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > users.id]
+  type token_type [not null]
+  token_hash varchar(255) [not null, unique]
+  expires_at timestamptz [not null]
+  used_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table refresh_tokens {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > users.id]
+  token_hash varchar(255) [not null, unique]
+  family_id uuid [not null, note: 'detects reuse of a rotated token']
+  expires_at timestamptz [not null]
+  revoked_at timestamptz
+  user_agent varchar(255)
+  ip_address varchar(45)
+  created_at timestamptz [not null, default: `now()`]
+}
+
+// ---------- Catalog ----------
+
+Table categories {
+  id uuid [pk, default: `gen_random_uuid()`]
+  business_id uuid [not null, ref: > businesses.id]
+  name varchar(120) [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (business_id, name) [unique]
+  }
+}
+
+Table units_of_measure {
+  id uuid [pk, default: `gen_random_uuid()`]
+  business_id uuid [not null, ref: > businesses.id]
+  name varchar(60) [not null]
+  abbreviation varchar(15) [not null]
+  allows_decimals boolean [not null, default: false]
+
+  indexes {
+    (business_id, name) [unique]
+  }
+}
+
+Table products {
+  id uuid [pk, default: `gen_random_uuid()`]
+  business_id uuid [not null, ref: > businesses.id]
+  category_id uuid [ref: > categories.id]
+  unit_id uuid [ref: > units_of_measure.id]
+  name varchar(200) [not null]
+  sku varchar(64) [not null]
+  barcode varchar(64)
+  description text
+  image_url text
+  cost_price numeric(19,4) [not null, default: 0]
+  selling_price numeric(19,4) [not null, default: 0]
+  tax_rate numeric(7,4) [not null, default: 0]
+  reorder_threshold numeric(14,3) [not null, default: 0]
+  is_active boolean [not null, default: true, note: 'false means archived']
+  created_by uuid [ref: > users.id]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (business_id, sku) [unique]
+    (business_id, barcode)
+    (business_id, name)
+  }
+}
+
+// ---------- Inventory ----------
+
+Table stock_locations {
+  id uuid [pk, default: `gen_random_uuid()`]
+  business_id uuid [not null, ref: > businesses.id]
+  name varchar(120) [not null]
+  is_default boolean [not null, default: false]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (business_id, name) [unique]
+  }
+}
+
+Table stock_levels {
+  id uuid [pk, default: `gen_random_uuid()`]
+  business_id uuid [not null, ref: > businesses.id]
+  product_id uuid [not null, ref: > products.id]
+  location_id uuid [not null, ref: > stock_locations.id]
+  quantity numeric(14,3) [not null, default: 0, note: 'cached balance; the ledger is the source of truth']
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (product_id, location_id) [unique]
+  }
+}
+
+Table stock_movements {
+  id bigint [pk, increment]
+  business_id uuid [not null, ref: > businesses.id]
+  product_id uuid [not null, ref: > products.id]
+  location_id uuid [not null, ref: > stock_locations.id]
+  movement_type movement_type [not null]
+  quantity_change numeric(14,3) [not null, note: 'positive adds stock, negative removes']
+  balance_after numeric(14,3) [not null]
+  unit_cost numeric(19,4)
+  reference_type varchar(30) [note: 'sale, goods_receipt, manual']
+  reference_id uuid
+  reason varchar(255)
+  created_by uuid [ref: > users.id]
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Append-only ledger. Rows are never updated or deleted.'
+
+  indexes {
+    (business_id, product_id, created_at)
+    (reference_type, reference_id)
+  }
+}
+
+// ---------- Suppliers and purchases ----------
+
+Table suppliers {
+  id uuid [pk, default: `gen_random_uuid()`]
+  business_id uuid [not null, ref: > businesses.id]
+  name varchar(200) [not null]
+  contact_name varchar(200)
+  phone varchar(50)
+  email varchar(255)
+  address text
+  is_active boolean [not null, default: true]
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table purchase_orders {
+  id uuid [pk, default: `gen_random_uuid()`]
+  business_id uuid [not null, ref: > businesses.id]
+  supplier_id uuid [not null, ref: > suppliers.id]
+  po_number varchar(30) [not null]
+  status purchase_status [not null, default: 'draft']
+  ordered_at timestamptz
+  expected_at date
+  notes text
+  created_by uuid [not null, ref: > users.id]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (business_id, po_number) [unique]
+  }
+}
+
+Table purchase_order_items {
+  id uuid [pk, default: `gen_random_uuid()`]
+  purchase_order_id uuid [not null, ref: > purchase_orders.id]
+  product_id uuid [not null, ref: > products.id]
+  quantity_ordered numeric(14,3) [not null]
+  quantity_received numeric(14,3) [not null, default: 0]
+  unit_cost numeric(19,4) [not null]
+}
+
+Table goods_receipts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  business_id uuid [not null, ref: > businesses.id]
+  purchase_order_id uuid [ref: > purchase_orders.id, note: 'null for stock received without an order']
+  received_by uuid [not null, ref: > users.id]
+  received_at timestamptz [not null, default: `now()`]
+  notes text
+}
+
+Table goods_receipt_items {
+  id uuid [pk, default: `gen_random_uuid()`]
+  goods_receipt_id uuid [not null, ref: > goods_receipts.id]
+  product_id uuid [not null, ref: > products.id]
+  purchase_order_item_id uuid [ref: > purchase_order_items.id]
+  quantity numeric(14,3) [not null]
+  unit_cost numeric(19,4) [not null]
+}
+
+// ---------- Customers and sales ----------
+
+Table customers {
+  id uuid [pk, default: `gen_random_uuid()`]
+  business_id uuid [not null, ref: > businesses.id]
+  name varchar(200) [not null]
+  phone varchar(50)
+  email varchar(255)
+  address text
+  is_active boolean [not null, default: true]
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table sales {
+  id uuid [pk, default: `gen_random_uuid()`]
+  business_id uuid [not null, ref: > businesses.id]
+  receipt_number varchar(30) [not null]
+  customer_id uuid [ref: > customers.id, note: 'null for walk-in sales']
+  status sale_status [not null, default: 'completed']
+  subtotal numeric(19,4) [not null]
+  discount_total numeric(19,4) [not null, default: 0]
+  tax_total numeric(19,4) [not null, default: 0]
+  total numeric(19,4) [not null]
+  amount_paid numeric(19,4) [not null, default: 0]
+  notes text
+  idempotency_key varchar(100) [note: 'prevents duplicate sales from retries']
+  sold_by uuid [not null, ref: > users.id]
+  sold_at timestamptz [not null, default: `now()`]
+  voided_by uuid [ref: > users.id]
+  voided_at timestamptz
+  void_reason varchar(255)
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (business_id, receipt_number) [unique]
+    (business_id, idempotency_key) [unique]
+    (business_id, sold_at)
+  }
+}
+
+Table sale_items {
+  id uuid [pk, default: `gen_random_uuid()`]
+  sale_id uuid [not null, ref: > sales.id]
+  product_id uuid [not null, ref: > products.id]
+  product_name varchar(200) [not null, note: 'snapshot at time of sale']
+  sku varchar(64) [not null, note: 'snapshot at time of sale']
+  quantity numeric(14,3) [not null]
+  unit_price numeric(19,4) [not null, note: 'snapshot at time of sale']
+  unit_cost numeric(19,4) [not null, note: 'snapshot at time of sale, used for profit']
+  discount_amount numeric(19,4) [not null, default: 0]
+  tax_rate numeric(7,4) [not null, default: 0]
+  tax_amount numeric(19,4) [not null, default: 0]
+  line_total numeric(19,4) [not null]
+}
+
+Table payments {
+  id uuid [pk, default: `gen_random_uuid()`]
+  business_id uuid [not null, ref: > businesses.id]
+  sale_id uuid [not null, ref: > sales.id]
+  method payment_method [not null]
+  amount numeric(19,4) [not null]
+  reference varchar(100) [note: 'for example a mobile money transaction id']
+  received_by uuid [not null, ref: > users.id]
+  paid_at timestamptz [not null, default: `now()`]
+}
+
+// ---------- Platform ----------
+
+Table document_sequences {
+  id uuid [pk, default: `gen_random_uuid()`]
+  business_id uuid [not null, ref: > businesses.id]
+  name varchar(30) [not null, note: 'receipt, purchase_order']
+  next_value bigint [not null, default: 1]
+
+  indexes {
+    (business_id, name) [unique]
+  }
+}
+
+Table audit_logs {
+  id bigint [pk, increment]
+  business_id uuid [not null, ref: > businesses.id]
+  user_id uuid [ref: > users.id]
+  action varchar(60) [not null]
+  entity_type varchar(40)
+  entity_id uuid
+  details jsonb
+  ip_address varchar(45)
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (business_id, created_at)
+    (entity_type, entity_id)
+  }
+}
