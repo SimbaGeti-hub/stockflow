@@ -35,6 +35,9 @@ public class BusinessMembership {
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
+    @Column(name = "is_active", nullable = false)
+    private boolean active = true;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -66,5 +69,9 @@ public class BusinessMembership {
 
     public Role getRole() {
         return role;
+    }
+
+    public boolean isActive() {
+        return active;
     }
 }

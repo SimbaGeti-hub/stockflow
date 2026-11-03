@@ -28,6 +28,12 @@ public class User {
     @Column(name = "full_name", nullable = false, length = 200)
     private String fullName;
 
+    @Column(name = "is_active", nullable = false)
+    private boolean active = true;
+
+    @Column(name = "last_login_at")
+    private Instant lastLoginAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -55,6 +61,10 @@ public class User {
         this.updatedAt = Instant.now();
     }
 
+    public void recordLogin() {
+        this.lastLoginAt = Instant.now();
+    }
+
     public UUID getId() {
         return id;
     }
@@ -69,5 +79,9 @@ public class User {
 
     public String getPasswordHash() {
         return passwordHash;
+    }
+
+    public boolean isActive() {
+        return active;
     }
 }
