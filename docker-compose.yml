@@ -2,6 +2,7 @@ services:
   db:
     image: postgres:17
     container_name: stockflow-db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: stockflow
       POSTGRES_USER: stockflow
