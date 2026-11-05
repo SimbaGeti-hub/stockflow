@@ -369,7 +369,7 @@ public class SalesService {
         for (SaleResponse.Item item : sale.items()) {
             out.append(item.productName()).append('\n');
             out.append("  ").append(money(item.quantity())).append(" x ").append(money(item.unitPrice()))
-                    .append(" = ").append(money(item.lineTotal())).append('\n');
+                    .append(" = ").append(money(item.unitPrice().multiply(item.quantity()))).append('\n');
         }
         out.append(line);
         out.append("Subtotal: ").append(money(sale.subtotal())).append('\n');

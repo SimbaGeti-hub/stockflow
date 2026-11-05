@@ -59,9 +59,9 @@ echo "--- 4: payment rules (expect 400 for overpaying, 400 for an unpaid balance
 code -X POST $API/sales -H "$json" -H "$auth" -d "{\"items\":[{\"productId\":\"$SODA\",\"quantity\":1}],\"payments\":[{\"method\":\"cash\",\"amount\":9999}]}"
 code -X POST $API/sales -H "$json" -H "$auth" -d "{\"items\":[{\"productId\":\"$SODA\",\"quantity\":1}],\"payments\":[{\"method\":\"cash\",\"amount\":500}]}"
 
-echo "--- 5: not enough stock changes nothing (expect two 409 messages, then soda 8 and bread 4 unchanged)"
-curl -s -X POST $API/sales -H "$json" -H "$auth" -d "{\"items\":[{\"productId\":\"$SODA\",\"quantity\":100}],\"payments\":[]}" | jq -r '.message'
-curl -s -X POST $API/sales -H "$json" -H "$auth" -d "{\"items\":[{\"productId\":\"$BREAD\",\"quantity\":1},{\"productId\":\"$SODA\",\"quantity\":100}],\"payments\":[]}" | jq -r '.message'
+echo "--- 5: not enough stock changes nothing (expect two 409 messages, the second saying Available: 7, then soda 8 and bread 4 unchanged)"
+curl -s -X POST $API/sales -H "$json" -H "$auth" -d "{\"items\":[{\"productId\":\"$SODA\",\"quantity\":100}],\"payments\":[{\"method\":\"cash\",\"amount\":200000}]}" | jq -r '.message'
+curl -s -X POST $API/sales -H "$json" -H "$auth" -d "{\"items\":[{\"productId\":\"$SODA\",\"quantity\":1},{\"productId\":\"$SODA\",\"quantity\":100}],\"payments\":[{\"method\":\"cash\",\"amount\":202000}]}" | jq -r '.message'
 echo "soda $(onhand SODA-$S), bread $(onhand BREAD-$S)"
 
 echo "--- 6: credit sale to a customer (expect total 2000, amountPaid 500, balanceDue 1500, customerName Credit Customer, soda 7)"
