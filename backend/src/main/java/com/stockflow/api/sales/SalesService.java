@@ -121,6 +121,15 @@ public class SalesService {
 
         List<CreateSaleRequest.PaymentLine> payments =
                 request.payments() == null ? List.of() : request.payments();
+        if (request.payInFullMethod() != null) {
+            if (!payments.isEmpty()) {
+                throw new BadRequestException("Send either payments or payInFullMethod, not both.");
+            }
+            if (total.signum() > 0) {
+                payments = List.of(new CreateSaleRequest.PaymentLine(
+                        request.payInFullMethod(), total, request.paymentReference()));
+            }
+        }
         BigDecimal paid = BigDecimal.ZERO;
         for (CreateSaleRequest.PaymentLine payment : payments) {
             paid = paid.add(payment.amount());

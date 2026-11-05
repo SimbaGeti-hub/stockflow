@@ -6,6 +6,10 @@ export type Me = {
   businessId: string
   role: string
   permissions: string[]
+  fullName: string
+  email: string
+  businessName: string
+  currencyCode: string
 }
 
 export type AuthStatus = 'loading' | 'signedOut' | 'signedIn'

@@ -26,6 +26,7 @@ type RequestOptions = {
   body?: unknown
   /** Set to false for sign-in, registration, and refresh calls. */
   auth?: boolean
+  headers?: Record<string, string>
 }
 
 // The access token lives in memory only. It is gone when the tab closes.
@@ -57,7 +58,7 @@ async function parseError(response: Response): Promise<ApiError> {
 }
 
 async function send(path: string, options: RequestOptions, token: string | null): Promise<Response> {
-  const headers: Record<string, string> = { Accept: 'application/json' }
+  const headers: Record<string, string> = { Accept: 'application/json', ...options.headers }
   if (options.body !== undefined) headers['Content-Type'] = 'application/json'
   if (token) headers['Authorization'] = `Bearer ${token}`
 
@@ -73,7 +74,7 @@ async function send(path: string, options: RequestOptions, token: string | null)
   }
 }
 
-export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function execute(path: string, options: RequestOptions): Promise<Response> {
   const useAuth = options.auth !== false
   let response = await send(path, options, useAuth ? accessToken : null)
 
@@ -84,6 +85,16 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
 
   if (!response.ok) throw await parseError(response)
+  return response
+}
+
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const response = await execute(path, options)
   if (response.status === 204) return undefined as T
   return (await response.json()) as T
+}
+
+export async function requestText(path: string): Promise<string> {
+  const response = await execute(path, { headers: { Accept: 'text/plain' } })
+  return response.text()
 }

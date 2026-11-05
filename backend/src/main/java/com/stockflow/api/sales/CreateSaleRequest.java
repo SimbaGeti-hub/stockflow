@@ -24,7 +24,15 @@ public record CreateSaleRequest(
 
         @Size(max = 10, message = "A sale can have at most 10 payments.")
         @Valid
-        List<PaymentLine> payments) {
+        List<PaymentLine> payments,
+
+        /** Pays the whole total in one payment, so the client never has to match server rounding. */
+        @Pattern(regexp = "cash|card|mobile_money|bank_transfer|other",
+                message = "Payment method must be cash, card, mobile_money, bank_transfer, or other.")
+        String payInFullMethod,
+
+        @Size(max = 100, message = "Payment reference must be 100 characters or fewer.")
+        String paymentReference) {
 
     public record SaleLine(
             @NotNull(message = "Product is required.")

@@ -11,6 +11,7 @@ export function AppShell() {
   // Only show the sections this user may open.
   const items = [
     { to: '/', label: 'Dashboard', end: true, show: true },
+    { to: '/pos', label: 'New sale', end: false, show: can('sales:create') },
     { to: '/products', label: 'Products', end: false, show: can('products:read') },
   ].filter((item) => item.show)
 
@@ -68,7 +69,12 @@ export function AppShell() {
           >
             Menu
           </button>
-          <div className="flex-1" />
+          <div className="min-w-0 flex-1">
+            <div className="hidden sm:block">
+              <p className="truncate text-sm font-medium">{me?.businessName}</p>
+              <p className="truncate text-xs text-muted">{me?.fullName}</p>
+            </div>
+          </div>
           <ThemeToggle />
           <button type="button" className={secondaryButtonClass} onClick={() => void logout()}>
             Sign out

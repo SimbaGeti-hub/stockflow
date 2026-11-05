@@ -22,3 +22,21 @@ export type Product = {
   createdAt: string
   updatedAt: string
 }
+
+export type PosProduct = {
+  id: string
+  name: string
+  sku: string
+  barcode: string | null
+  sellingPrice: number
+  taxRate: number
+  onHand: number
+}
+
+export type SaleResult = {
+  id: string
+  receiptNumber: string
+  status: string
+  total: number
+  amountPaid: number
+}
