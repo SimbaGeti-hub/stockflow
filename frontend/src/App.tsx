@@ -2,8 +2,10 @@ import { Link, Route, Routes } from 'react-router'
 import { RequireAuth } from './auth/RequireAuth'
 import { AppShell } from './layout/AppShell'
 import DashboardPage from './pages/DashboardPage'
+import InventoryPage from './pages/InventoryPage'
 import LoginPage from './pages/LoginPage'
 import PosPage from './pages/PosPage'
+import ProductFormPage from './pages/ProductFormPage'
 import ProductsPage from './pages/ProductsPage'
 import RegisterPage from './pages/RegisterPage'
 
@@ -29,6 +31,9 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="pos" element={<PosPage />} />
           <Route path="products" element={<ProductsPage />} />
+          <Route path="products/new" element={<ProductFormPage />} />
+          <Route path="products/:id/edit" element={<ProductFormPage />} />
+          <Route path="inventory" element={<InventoryPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Route>

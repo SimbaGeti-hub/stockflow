@@ -40,3 +40,32 @@ export type SaleResult = {
   total: number
   amountPaid: number
 }
+
+export type StockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
+
+export type StockItem = {
+  productId: string
+  name: string
+  sku: string
+  onHand: number
+  reorderThreshold: number
+  status: StockStatus
+}
+
+export type StockMovement = {
+  id: number
+  movementType: string
+  quantityChange: number
+  balanceAfter: number
+  unitCost: number | null
+  referenceType: string | null
+  referenceId: string | null
+  reason: string | null
+  createdBy: string | null
+  createdAt: string
+}
+
+export type Category = {
+  id: string
+  name: string
+}

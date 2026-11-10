@@ -13,6 +13,7 @@ export function AppShell() {
     { to: '/', label: 'Dashboard', end: true, show: true },
     { to: '/pos', label: 'New sale', end: false, show: can('sales:create') },
     { to: '/products', label: 'Products', end: false, show: can('products:read') },
+    { to: '/inventory', label: 'Inventory', end: false, show: can('inventory:read') },
   ].filter((item) => item.show)
 
   const roleLabel = me ? me.role.charAt(0).toUpperCase() + me.role.slice(1) : ''

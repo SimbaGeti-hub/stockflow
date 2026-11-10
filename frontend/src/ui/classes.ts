@@ -15,3 +15,7 @@ export const secondaryButtonClass =
   focus
 
 export const cardClass = 'rounded-xl border border-border bg-surface p-4 shadow-sm'
+
+export const smallButtonClass =
+  'inline-flex items-center justify-center rounded-lg border border-border bg-surface px-3 py-1 text-xs font-medium hover:bg-bg disabled:cursor-not-allowed disabled:opacity-60 ' +
+  focus
