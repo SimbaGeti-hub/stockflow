@@ -77,7 +77,7 @@ export default function InventoryPage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold">Inventory</h1>
-        <p className="mt-1 text-sm text-muted">Stock on hand for every active product.</p>
+        <p className="mt-1 text-sm text-muted">Stock on hand for every active product. Low stock means at or below the reorder level.</p>
       </div>
 
       {message && (

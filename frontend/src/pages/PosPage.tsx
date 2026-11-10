@@ -287,6 +287,9 @@ export default function PosPage() {
                     <p className="text-xs text-muted tabular-nums">
                       {formatMoney(line.product.sellingPrice)} each
                     </p>
+                    {line.quantity >= line.product.onHand && (
+                      <p className="text-xs text-warning">All {line.product.onHand} in stock are in this sale.</p>
+                    )}
                   </div>
                   <div className="flex items-center gap-1">
                     <button
@@ -304,6 +307,7 @@ export default function PosPage() {
                       type="button"
                       className={secondaryButtonClass + ' h-9 w-9 px-0'}
                       aria-label={`Add one ${line.product.name}`}
+                      disabled={line.quantity >= line.product.onHand}
                       onClick={() => setQuantity(line.product.id, line.quantity + 1)}
                     >
                       +
