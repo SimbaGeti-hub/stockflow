@@ -8,7 +8,15 @@ import { cartTotals } from '../lib/pricing'
 import type { CartLine } from '../lib/pricing'
 import type { PosProduct, SaleResult } from '../lib/types'
 import { useDebounced } from '../lib/useDebounced'
-import { cardClass, inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from '../ui/classes'
+import { CancelSaleDialog } from '../pos/CancelSaleDialog'
+import {
+  cardClass,
+  inputClass,
+  labelClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+  smallButtonClass,
+} from '../ui/classes'
 
 type PaymentMethod = 'cash' | 'mobile_money' | 'card' | 'bank_transfer'
 
@@ -41,6 +49,8 @@ export default function PosPage() {
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [completed, setCompleted] = useState<Completed | null>(null)
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const [cancelled, setCancelled] = useState(false)
 
   const searchRef = useRef<HTMLInputElement>(null)
   const cartRef = useRef<HTMLElement>(null)
@@ -60,6 +70,15 @@ export default function PosPage() {
     searchRef.current?.focus()
   }, [])
 
+  // Warn before a refresh or tab close throws away a sale in progress.
+  const hasOpenSale = cart.length > 0 && !completed
+  useEffect(() => {
+    if (!hasOpenSale) return
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault()
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [hasOpenSale])
+
   const totals = useMemo(() => cartTotals(cart), [cart])
   const itemCount = cart.reduce((count, line) => count + line.quantity, 0)
 
@@ -72,6 +91,7 @@ export default function PosPage() {
   function addToCart(product: PosProduct) {
     setError(null)
     setNotice(null)
+    setCancelled(false)
     const existing = cart.find((line) => line.product.id === product.id)
     if (product.onHand < 1) {
       setNotice(`${product.name} is out of stock.`)
@@ -124,7 +144,9 @@ export default function PosPage() {
         addToCart(pick)
         setSearch('')
       } else {
-        setNotice(results.length === 0 ? 'No product matches that code.' : 'Several products match. Tap the one you want.')
+        setNotice(
+          results.length === 0 ? 'No product matches that code.' : 'Several products match. Tap the one you want.',
+        )
       }
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not search. Check your connection and try again.')
@@ -169,6 +191,18 @@ export default function PosPage() {
     setTimeout(() => searchRef.current?.focus(), 0)
   }
 
+  function cancelSale(reason: string | null) {
+    const items = cart.map((line) => ({ productId: line.product.id, quantity: line.quantity }))
+    // Best effort: the sale is cancelled on screen even if the record cannot be saved.
+    request('/pos/cancellations', {
+      method: 'POST',
+      body: { reason: reason ?? undefined, items },
+    }).catch(() => undefined)
+    setCancelOpen(false)
+    newSale()
+    setCancelled(true)
+  }
+
   if (completed) {
     return (
       <div className="mx-auto max-w-md space-y-4">
@@ -206,6 +240,12 @@ export default function PosPage() {
           <h1 className="text-2xl font-semibold">New sale</h1>
           <p className="mt-1 text-sm text-muted">Scan a barcode and press Enter, or search and tap a product.</p>
         </div>
+
+        {cancelled && cart.length === 0 && (
+          <p role="status" className="rounded-lg border border-border bg-surface p-3 text-sm">
+            Sale cancelled. Nothing was charged and no stock was changed.
+          </p>
+        )}
 
         <div>
           <label htmlFor="pos-search" className="sr-only">
@@ -274,7 +314,19 @@ export default function PosPage() {
 
       <section ref={cartRef} aria-label="Current sale" className="min-w-0 lg:sticky lg:top-20 lg:self-start">
         <div className={cardClass + ' space-y-4'}>
-          <h2 className="text-lg font-semibold">Current sale</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">Current sale</h2>
+            {cart.length > 0 && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setCancelOpen(true)}
+                className={smallButtonClass + ' text-danger'}
+              >
+                Cancel sale
+              </button>
+            )}
+          </div>
 
           {cart.length === 0 ? (
             <p className="text-sm text-muted">The sale is empty. Add a product to begin.</p>
@@ -290,6 +342,14 @@ export default function PosPage() {
                     {line.quantity >= line.product.onHand && (
                       <p className="text-xs text-warning">All {line.product.onHand} in stock are in this sale.</p>
                     )}
+                    <button
+                      type="button"
+                      aria-label={`Remove ${line.product.name} from the sale`}
+                      onClick={() => setQuantity(line.product.id, 0)}
+                      className="mt-1 text-xs text-muted underline hover:text-danger focus-visible:outline-2 focus-visible:outline-primary"
+                    >
+                      Remove
+                    </button>
                   </div>
                   <div className="flex items-center gap-1">
                     <button
@@ -436,6 +496,14 @@ export default function PosPage() {
           </button>
         </div>
       )}
+
+      <CancelSaleDialog
+        open={cancelOpen}
+        itemCount={itemCount}
+        totalLabel={`${currency} ${formatMoney(totals.total)}`}
+        onKeep={() => setCancelOpen(false)}
+        onConfirm={cancelSale}
+      />
     </div>
   )
 }
