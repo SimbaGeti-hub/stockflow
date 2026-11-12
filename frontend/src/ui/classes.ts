@@ -19,3 +19,7 @@ export const cardClass = 'rounded-xl border border-border bg-surface p-4 shadow-
 export const smallButtonClass =
   'inline-flex items-center justify-center rounded-lg border border-border bg-surface px-3 py-1 text-xs font-medium hover:bg-bg disabled:cursor-not-allowed disabled:opacity-60 ' +
   focus
+
+export const dangerButtonClass =
+  'inline-flex items-center justify-center rounded-lg border border-danger px-4 py-2 text-sm font-semibold text-danger hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60 ' +
+  focus

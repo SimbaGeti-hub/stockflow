@@ -8,6 +8,7 @@ import PosPage from './pages/PosPage'
 import ProductFormPage from './pages/ProductFormPage'
 import ProductsPage from './pages/ProductsPage'
 import RegisterPage from './pages/RegisterPage'
+import SalesPage from './pages/SalesPage'
 
 function NotFound() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route index element={<DashboardPage />} />
           <Route path="pos" element={<PosPage />} />
+          <Route path="sales" element={<SalesPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="products/new" element={<ProductFormPage />} />
           <Route path="products/:id/edit" element={<ProductFormPage />} />

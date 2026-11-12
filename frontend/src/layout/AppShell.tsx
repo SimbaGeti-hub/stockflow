@@ -12,6 +12,7 @@ export function AppShell() {
   const items = [
     { to: '/', label: 'Dashboard', end: true, show: true },
     { to: '/pos', label: 'New sale', end: false, show: can('sales:create') },
+    { to: '/sales', label: 'Sales', end: false, show: can('sales:read_all') || can('sales:read_own') },
     { to: '/products', label: 'Products', end: false, show: can('products:read') },
     { to: '/inventory', label: 'Inventory', end: false, show: can('inventory:read') },
   ].filter((item) => item.show)

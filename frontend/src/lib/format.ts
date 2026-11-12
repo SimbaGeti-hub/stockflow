@@ -29,3 +29,15 @@ const MOVEMENT_LABELS: Record<string, string> = {
 export function movementLabel(type: string): string {
   return MOVEMENT_LABELS[type] ?? type
 }
+
+const PAYMENT_LABELS: Record<string, string> = {
+  cash: 'Cash',
+  card: 'Card',
+  mobile_money: 'Mobile money',
+  bank_transfer: 'Bank transfer',
+  other: 'Other',
+}
+
+export function paymentLabel(method: string): string {
+  return PAYMENT_LABELS[method] ?? method
+}

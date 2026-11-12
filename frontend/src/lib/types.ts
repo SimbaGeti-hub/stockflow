@@ -69,3 +69,44 @@ export type Category = {
   id: string
   name: string
 }
+
+export type SaleSummary = {
+  id: string
+  receiptNumber: string
+  status: string
+  total: number
+  amountPaid: number
+  customerName: string | null
+  soldBy: string
+  soldAt: string
+}
+
+export type SaleItem = {
+  productId: string
+  productName: string
+  sku: string
+  quantity: number
+  unitPrice: number
+  unitCost: number | null
+  taxRate: number
+  taxAmount: number
+  lineTotal: number
+}
+
+export type SalePayment = {
+  method: string
+  amount: number
+  reference: string | null
+  paidAt: string
+}
+
+export type SaleDetail = SaleSummary & {
+  customerId: string | null
+  subtotal: number
+  taxTotal: number
+  balanceDue: number
+  voidedAt: string | null
+  voidReason: string | null
+  items: SaleItem[]
+  payments: SalePayment[]
+}
